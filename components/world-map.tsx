@@ -1,17 +1,49 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap} from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { fetchLocations } from '@/data/locations'; // Import fetchLocations function
 import { Tables } from '@/database.types';
 
-// Fix for default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-shadow.png',
 });
+
+// Custom yellow icon for current location
+const yellowHumanIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png',
+  iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-shadow.png',
+  shadowSize: [41, 41]
+});
+
+// Custom hook to track user location
+const TrackUserLocation = ({ position }: { position: [number, number] | null }) => {
+  const map = useMap();
+  const initialZoom = useRef(true);
+  const userZoomLevel = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (position) {
+      if (initialZoom.current) {
+        map.setView(position, 18, { animate: true });
+        userZoomLevel.current = map.getZoom();
+        initialZoom.current = false;
+      } else {
+        const zoomLevel = userZoomLevel.current || map.getZoom();
+        map.panTo(position, { animate: true, duration: 1.5, easeLinearity: 0.25 });
+      }
+    }
+  }, [position, map]);
+
+  return null;
+};
 
 export type Location = Tables<'Locations'>;
 
