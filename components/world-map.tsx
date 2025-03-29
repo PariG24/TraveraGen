@@ -35,6 +35,7 @@ const WorldMap = () => {
   useEffect(() => {
     if (mapRef.current) {
       // Remove the previous map before creating a new one
+      mapRef.current.off()
       mapRef.current.remove();
     }
   }, [center, zoom]); // Re-run cleanup when center or zoom changes
@@ -78,4 +79,3 @@ const WorldMap = () => {
 };
 
 export default WorldMap;
-
