@@ -1,3 +1,4 @@
+import { Database } from '@/database.types'
 import { createClient } from '@supabase/supabase-js'
 
 // Ensure that the environment variables are defined, and handle missing values
@@ -10,4 +11,4 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 // Create the Supabase client with the URL and API key
-export const supabase = createClient(supabaseUrl, supabaseKey)
+export const supabase = createClient<Database>(supabaseUrl, supabaseKey)

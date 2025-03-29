@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { fetchLocations } from "@/data/locations"  // Importing the function that fetches locations
-import { Location } from "@/data/locations"  // Importing the Location type
+import { Location } from "../../components/world-map";
 
 export default function FoldersPage() {
   const [locations, setLocations] = useState<Location[]>([])  // Correctly typing the state
@@ -28,12 +28,17 @@ export default function FoldersPage() {
     getLocations()
   }, [])
 
+  //.reduce
+  //.forEach
+
   // Group locations by country
   const groupedLocations = locations.reduce((acc, location) => {
-    if (!acc[location.country]) {
-      acc[location.country] = []
+    if (location.Country) {
+      if (!acc[location.Country]) {
+        acc[location.Country] = []
+      }
+      acc[location.Country].push(location)
     }
-    acc[location.country].push(location)
     return acc
   }, {} as Record<string, Location[]>)
 
@@ -42,9 +47,9 @@ export default function FoldersPage() {
     ? groupedLocations[selectedCountry].filter((location) => {
         const searchLower = searchTerm.toLowerCase()
         return (
-          location.name.toLowerCase().includes(searchLower) ||
-          location.address.toLowerCase().includes(searchLower) ||
-          location.country.toLowerCase().includes(searchLower)
+          location.Location_Name?.toLowerCase().includes(searchLower) ||
+          location.Address?.toLowerCase().includes(searchLower) ||
+          location.Country?.toLowerCase().includes(searchLower)
         )
       })
     : []
@@ -114,10 +119,10 @@ export default function FoldersPage() {
               <div className="grid gap-4">
                 {filteredLocations.map((location) => (
                   <div key={location.id} className="border rounded-lg p-4 shadow-sm">
-                    <h3 className="text-lg font-semibold mb-2">{location.name}</h3>
-                    <p className="text-gray-600 mb-2">{location.address}</p>
+                    <h3 className="text-lg font-semibold mb-2">{location.Location_Name}</h3>
+                    <p className="text-gray-600 mb-2">{location.Address}</p>
                     <a
-                      href={location.instagramLink}
+                      href={location.URL ?? ''}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-500 hover:underline flex items-center gap-1"

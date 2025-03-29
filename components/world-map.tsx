@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchLocations, Location } from '@/data/locations'; // Import fetchLocations function
+import { fetchLocations } from '@/data/locations'; // Import fetchLocations function
+import { Tables } from '@/database.types';
 
 // Fix for default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -11,6 +12,8 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-shadow.png',
 });
+
+export type Location = Tables<'Locations'>;
 
 const WorldMap = () => {
   const mapRef = useRef<L.Map | null>(null);
@@ -58,14 +61,14 @@ const WorldMap = () => {
       {locations.map((location) => (
         <Marker
           key={location.id}
-          position={location.coordinates}
-          eventHandlers={{ click: () => handleMarkerClick(location.coordinates) }}
+          position={[location.Latitude ?? 0, location.Longitude ?? 0]}
+          eventHandlers={{ click: () => handleMarkerClick([location.Latitude ?? 0, location.Longitude ?? 0]) }}
         >
           <Popup>
             <div>
-              <h3>{location.name}</h3>
-              <p>{location.address}</p>
-              <a href={location.instagramLink} target="_blank" rel="noopener noreferrer">Instagram</a>
+              <h3>{location.Location_Name}</h3>
+              <p>{location.Address}</p>
+              <a href={location.URL ?? ''} target="_blank" rel="noopener noreferrer">Instagram</a>
             </div>
           </Popup>
         </Marker>
@@ -75,3 +78,4 @@ const WorldMap = () => {
 };
 
 export default WorldMap;
+
