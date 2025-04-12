@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap} from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { fetchLocations } from '@/data/locations'; // Import fetchLocations function
 import { Tables } from '@/database.types';
 
+// Fix for default marker icon
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-icon-2x.png',
@@ -20,7 +21,7 @@ const yellowHumanIcon = new L.Icon({
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-shadow.png',
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 });
 
 // Custom hook to track user location
@@ -31,13 +32,14 @@ const TrackUserLocation = ({ position }: { position: [number, number] | null }) 
 
   useEffect(() => {
     if (position) {
+      console.log('User Location:', position);
       if (initialZoom.current) {
         map.setView(position, 18, { animate: true });
         userZoomLevel.current = map.getZoom();
         initialZoom.current = false;
       } else {
         const zoomLevel = userZoomLevel.current || map.getZoom();
-        map.panTo(position, { animate: true, duration: 1.5, easeLinearity: 0.25 });
+        map.setView(position, zoomLevel, { animate: true });
       }
     }
   }, [position, map]);
@@ -45,45 +47,56 @@ const TrackUserLocation = ({ position }: { position: [number, number] | null }) 
   return null;
 };
 
+// Use the Location type from Tables<'Locations'>
 export type Location = Tables<'Locations'>;
 
 const WorldMap = () => {
   const mapRef = useRef<L.Map | null>(null);
-  const [locations, setLocations] = useState<Location[]>([]); // Store locations data
-  const [center, setCenter] = useState<[number, number]>([0, 0]);
-  const [zoom, setZoom] = useState<number>(2);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
-  // Fetch locations when the component mounts
+  // Fetch locations from the database
   useEffect(() => {
     const fetchData = async () => {
       const locationsData = await fetchLocations();
-      setLocations(locationsData); // Set locations from Supabase
+      setLocations(locationsData);
     };
 
     fetchData();
   }, []);
 
-  // Handle map cleanup and re-initialization
+  // Track user's location
   useEffect(() => {
-    if (mapRef.current) {
-      // Remove the previous map before creating a new one
-      mapRef.current.off()
-      mapRef.current.remove();
+    if (navigator.geolocation) {
+      const watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const newLocation: [number, number] = [latitude, longitude];
+          console.log('New user coordinates:', newLocation);
+          setCurrentLocation(newLocation);
+          setMapReady(true);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+        },
+        { enableHighAccuracy: true, maximumAge: 1000, timeout: 5000 }
+      );
+
+      return () => navigator.geolocation.clearWatch(watchId);
     }
-  }, [center, zoom]); // Re-run cleanup when center or zoom changes
+  }, []);
 
   const handleMarkerClick = (coordinates: [number, number]) => {
     if (mapRef.current) {
-      mapRef.current.flyTo(coordinates, 18); // Set to maximum zoom level
+      mapRef.current.flyTo(coordinates, 18, { animate: true }); // Fly to the clicked marker
     }
-    setCenter(coordinates);
-    setZoom(18); // Set to maximum zoom level
   };
 
   return (
     <MapContainer
-      center={center}
-      zoom={zoom}
+      center={currentLocation || [0, 0]}
+      zoom={2}
       ref={mapRef}
       style={{ height: '100vh', width: '100%' }}
     >
@@ -91,6 +104,19 @@ const WorldMap = () => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       />
+      {/* Add TrackUserLocation to track and center on the user's location */}
+      {mapReady && currentLocation && <TrackUserLocation position={currentLocation} />}
+      {/* Add a marker for the user's current location */}
+      {currentLocation && (
+        <Marker position={currentLocation} icon={yellowHumanIcon}>
+          <Popup>
+            <div>
+              <h3>You're Currently Here</h3>
+            </div>
+          </Popup>
+        </Marker>
+      )}
+      {/* Add markers for other locations */}
       {locations.map((location) => (
         <Marker
           key={location.id}
